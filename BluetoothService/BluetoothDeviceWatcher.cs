@@ -15,6 +15,7 @@ namespace BluetoothService
     public class BluetoothDeviceWatcher : IBluetoothDeviceWatcher
     {
         const string aqsAllBluetoothDevices = "(System.Devices.Aep.ProtocolId:=\"{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}\")";
+        const string isConnectedProperty = "System.Devices.Aep.IsConnected";
 
         private readonly DeviceWatcher watcher;
         private readonly ConcurrentDictionary<string, BluetoothDevice> devices = [];
@@ -24,10 +25,18 @@ namespace BluetoothService
         {
             watcher = DeviceInformation.CreateWatcher(aqsAllBluetoothDevices, [
                 "System.Devices.Aep.DeviceAddress",
-            "System.Devices.Aep.IsConnected"
+                isConnectedProperty
                 ], DeviceInformationKind.AssociationEndpoint);
 
             watcher.Added += (s, e) => devices[e.Id] = BluetoothDeviceFromDeviceInformation(e);
+            watcher.Updated += (s, e) =>
+            {
+                if (!e.Properties.ContainsKey(isConnectedProperty)) return;
+                devices[e.Id] = devices[e.Id] with
+                {
+                    IsConnected = (bool)e.Properties[isConnectedProperty]
+                };
+            };
             watcher.Removed += (s, e) => devices.Remove(e.Id, out _);
             watcher.EnumerationCompleted += (s, e) => watcherInitialized.SetResult();
 
