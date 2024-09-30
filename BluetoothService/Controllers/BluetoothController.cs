@@ -20,8 +20,10 @@ public class BluetoothController : ControllerBase
     }
 
     [HttpPut]
-    public async Task Put(BluetoothDevice device, bool connect)
+    public async Task<IActionResult> Put(BluetoothDevice device, bool connect)
     {
-        await bluetoothService.UpdateConnectionStatus(device, connect);
+        var result = await bluetoothService.UpdateConnectionStatus(device, connect);
+        if (!result) return BadRequest(new { Message = "Failed to update connection status for device." });
+        return Ok();
     }
 }
